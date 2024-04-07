@@ -1,0 +1,22 @@
+{
+    "name": "agencianet/paymentgateway",
+	"version": "1.0.0",
+    "description": "Library to connect to different payment gateways without changing application code",
+    "type": "library",
+    "require": {
+
+    },
+    "license": "proprietary",
+    "autoload": {
+        "psr-4": {
+            "AgenciaNet\\": "src/"
+        }
+    },
+    "authors": [
+        {
+            "name": "Michel Isoton",
+            "email": "michel.isoton@gmail.com"
+        }
+    ],
+    "minimum-stability": "stable"
+}

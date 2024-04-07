@@ -8,15 +8,15 @@ namespace AgenciaNet\interfaces;
  */
 interface GatewayAnswerInterface {
 
-	//Identificação de estado
-	public function isSuccess() : bool;
+    //Identificação de estado
+    public function isSuccess() : bool;
 
-	//Obtenção de dados
-	public function getMessage() : ?string;
-	public function getId() : string|int;
-	public function getFullBody() : ?array;
-	public function getData(string $index) : ?string;
-	public function shouldRetry() : bool;
+    //Obtenção de dados
+    public function getMessage() : ?string;
+    public function getId() : string|int;
+    public function getFullBody() : ?array;
+    public function getData(string $index) : ?string;
+    public function shouldRetry() : bool;
 }
 
 ?>

@@ -6,7 +6,8 @@ A classe *PaymentGateway* age como um *Factory* e instancia o objeto desejado, p
 Todos os gateways desenvolvidos devem ficar em *src/gateways*, e devem obrigatoriamente implementar *GatewayInterface*. Ainda, todo gateway deve obrigatoriamente retornar em seus métodos objetos que implementam *GatewayAnswerInterface*. 
 
 ## Como usar 
-Ao usar composer, incluir o autoloader e chamar o objeto. 
+Ao usar composer, incluir o autoloader e chamar o objeto.
+Claro, não se esquecer de *composer install* nas dependências. 
 
 ```php
 <?php

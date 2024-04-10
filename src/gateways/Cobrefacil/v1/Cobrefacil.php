@@ -1,11 +1,17 @@
 <?php
-namespace AgenciaNet\gateways;
-use AgenciaNet\interfaces\GatewayInterface;
-use AgenciaNet\interfaces\GatewayAnswerInterface;
-use AgenciaNet\gateways\CobreFacilAnswer;
+namespace PaymentGateway\gateways\Cobrefacil\v1;
+
+use PaymentGateway\interfaces\GatewayInterface;
+use PaymentGateway\interfaces\GatewayAnswerInterface;
+use PaymentGateway\interfaces\ClientInterface;
+use PaymentGateway\interfaces\ChargeInterface;
+
+use PaymentGateway\gateways\Cobrefacil\v1\Answer;
+use PaymentGateway\gateways\Cobrefacil\v1\entities\Client;
+use PaymentGateway\gateways\Cobrefacil\v1\entities\Charge;
 
 /**
- * 	Cobrefacil
+ * 	Cobrefacil v1
  * 	Classe do tipo GatewayInterface que implementa todos os métodos necessários para 
  *  estabelecer uma conexão com a API do gateway de pagamentos Cobrefácil, e executar 
  *  operações de gerenciamento de clientes, cobranças, notas fiscais, e outros aspectos.
@@ -27,11 +33,13 @@ class Cobrefacil implements GatewayInterface {
     private ?string $storage		= null;
 
     //Endpoint para requisições 
-    const ENDPOINT_PRODUCTION 		= 'https://api.cobrefacil.com.br/v1/';
-    const ENDPOINT_SANDBOX 			= 'https://api.sandbox.cobrefacil.com.br/v1/';
+    const ENDPOINT_PRODUCTION 		= 'https://api.cobrefacil.com.br/';
+    const ENDPOINT_SANDBOX 			= 'https://api.sandbox.cobrefacil.com.br/';
     
+    const API_VERSION               = 'v1';
+
     //Arquivo de banco de dados temporário
-    const TMP_FILE = 'cobre_facil_db.json';
+    const TMP_FILE                  = 'cobre_facil_v1_db.json';
 
     /**
      *  Constructor
@@ -39,7 +47,7 @@ class Cobrefacil implements GatewayInterface {
      *  se as mesmas existem
      */
     function __construct() {
-        $tmp_dir = dirname(__DIR__) . self::DS . 'tmp';
+        $tmp_dir = __DIR__ . self::DS . 'tmp';
 
         //Verifica se o diretório para arquivos temporários existe
         if(is_dir($tmp_dir) === false) {
@@ -62,7 +70,7 @@ class Cobrefacil implements GatewayInterface {
      * 	duração baixa, o qual deve ser enviado como Bearer em cada requisição.
      *  O array de credenciais deve ter dois índices: 'app_id', e 'secret'.
      */
-    public function setCredentials(array $credentials) {
+    public function setCredentials(array $credentials) : void {
 
         //Verifica se as credenciais são válidas
         if(isset($credentials['app_id']) === false || isset($credentials['secret']) === false) {
@@ -78,60 +86,26 @@ class Cobrefacil implements GatewayInterface {
      * 	Indica á biblioteca qual o ambiente a performar operações. Pode ser 
      *  'sandbox' ou 'production'
      */
-    public function setEnvironment(string $environment) {
+    public function setEnvironment(string $environment) : void {
         $this->environment = $environment;
     }
 
     /**
-     * 	createClient
-     * 	Executa a operação de cadastro de clientes
+     * 	client
+     * 	Cria um objeto de cliente para operações com este tipo de entidade. Para 
+     *  efetuar requisições, passa-se o objeto-pai como parâmetro
      */
-    public function createClient(array $data) : GatewayAnswerInterface {
-        $cliente = $this->execRequest('POST', 'customers', $data);
-        
-        return $cliente;
+    public function client() : ClientInterface {
+        return new Client($this);
     }
 
     /**
-     *  updateClient
-     *  Executa a operação de edição de clientes previamente cadastrados
+     * 	charge
+     * 	Cria um objeto de cobranças para operações com este tipo de entidade. Para 
+     *  efetuar requisições, passa-se o objeto-pai como parâmetro
      */
-    public function updateClient(string $code, array $data) : GatewayAnswerInterface {
-        $cliente = $this->request('PUT', 'customers/' . $id, $cliente->getData());
-
-        return $cliente;
-    }
-
-    /**
-     *  deleteClient
-     *  Executa a operação de exclusão de clientes
-     */
-    public function deleteClient(string $code) : GatewayAnswerInterface {
-
-    }
-
-    /**
-     *  createCharge
-     * 	Executa a criação de cobranças
-     */
-    public function createCharge(string $type) : GatewayAnswerInterface {
-
-    }
-
-    /**
-     *  createInvoice
-     * 	Executa a criação de notas fiscais de serviços
-     */
-    public function createInvoice() : GatewayAnswerInterface {
-
-    }
-
-    /**
-     *  deleteInvoice
-     * 	Executa o cancelamento de notas fiscais de serviços
-     */
-    public function deleteInvoice(string $code) : GatewayAnswerInterface {
-
+    public function charge() : ChargeInterface {
+        return new Charge($this);
     }
 
     /*
@@ -155,13 +129,13 @@ class Cobrefacil implements GatewayInterface {
 
         //Armazena no objeto para futuro uso...
         if($auth->isSuccess() === true):
-            
+
             //Armazena no objeto...
             $this->token 			= $auth->getData('token');
             $this->expiration 		= time() + $auth->getData('expiration');
             
             //Armazena no banco de dados 
-            $this->saveAuth($this->token, $this->expiration);
+            $this->saveAuthTokenObject($this->token, $this->expiration);
 
             return true;
         endif;
@@ -176,7 +150,7 @@ class Cobrefacil implements GatewayInterface {
      *	de serviço 'Cobre Fácil'. Estas requisições exigem um token de autenticação, 
      *	e podem executar quaisquer operações. 
      */
-    private function execRequest(string $method, string $endpoint, array $payload = array()) : GatewayAnswerInterface {
+    public function execRequest(string $method, string $endpoint, array $payload = array()) : GatewayAnswerInterface {
 
         /*
          *	Antes de qualquer coisa, verifica se o objeto possui um token de 
@@ -186,7 +160,7 @@ class Cobrefacil implements GatewayInterface {
          *	passar, pois trata-se da chamada para gerar o token.
          */
         if($this->isAuthRequest($endpoint) === false && $this->establishAuthentication() === false) {
-            return new CobreFacilAnswer(array(
+            return new Answer(array(
                 'success'		=> false, 
                 'message'		=> 'Falha de autenticação ao executar requisição', 
                 'shouldRetry'	=> false,  
@@ -196,11 +170,20 @@ class Cobrefacil implements GatewayInterface {
             ));
         }
 
+        //Monta a URL
+        $url = self::ENDPOINT_SANDBOX;
+        if($this->environment == 'production') {
+            $url = self::ENDPOINT_PRODUCTION;
+        }
+
+        //Adiciona a versão de API
+        $url .= self::API_VERSION . '/';
+
         //Array de configurações
         $curl_cfg = array(
             CURLOPT_POST 				=> 0,
             CURLOPT_HEADER 				=> 0,
-            CURLOPT_URL 				=> ($this->environment == 'production' ? self::ENDPOINT_PRODUCTION : self::ENDPOINT_SANDBOX) . $endpoint,
+            CURLOPT_URL 				=>  $url . $endpoint,
             CURLOPT_FRESH_CONNECT		=> 1,
             CURLOPT_RETURNTRANSFER 		=> 1,
             CURLOPT_TIMEOUT 			=> 45,
@@ -316,7 +299,7 @@ class Cobrefacil implements GatewayInterface {
         endif;
 
         //Retorna sempre um objeto 'GatewayAnswerInterface'
-        return new CobreFacilAnswer($result);
+        return new Answer($result);
     }
 
     

@@ -1,16 +1,16 @@
 <?php
-namespace AgenciaNet\gateways;
-use AgenciaNet\interfaces\GatewayAnswerInterface;
+namespace PaymentGateway\gateways\Cobrefacil\v1;
+use PaymentGateway\interfaces\GatewayAnswerInterface;
 
 /**
- * 	CobreFacilAnswer
+ * 	Answer
  * 	Classe do tipo GatewayAnswerInterface que permite executar operações 
  * 	de forma padronizada em toda e qualquer resposta recebida pela aplicação 
  * 	oriunda do gateway de pagamentos Cobrefácil
  *  
  * 	https://developers.cobrefacil.com.br/
  */
-class CobreFacilAnswer implements GatewayAnswerInterface {
+class Answer implements GatewayAnswerInterface {
     private bool $success       = false;
     private bool $retry         = false;
     private ?string $message    = null;
@@ -28,6 +28,11 @@ class CobreFacilAnswer implements GatewayAnswerInterface {
         //Identifica o status
         if(isset($response['success']) === true) {
             $this->success = (bool) $response['success'];
+        }
+
+        //Identifica o status
+        if(isset($response['data']['id']) === true) {
+            $this->id = $response['data']['id'];
         }
 
         //Identifica mensagens de retorno
@@ -67,9 +72,9 @@ class CobreFacilAnswer implements GatewayAnswerInterface {
     }
 
     //Retorna índices específicos do retorno
-    public function getData(string $index) : ?string {
+    public function getData(string $index, ?string $parentNode = 'data') : ?string {
         $aux = $this->body;
-        $ind = explode('.', $index);
+        $ind = explode('.', ($parentNode ? $parentNode . '.' : '') . $index);
 
         foreach($ind as $k => $i) {
             if(isset($aux[$i])) {
@@ -82,7 +87,7 @@ class CobreFacilAnswer implements GatewayAnswerInterface {
         return $aux;
     }
 
-    //Retorna erros da requisição,s e houver
+    //Retorna erros da requisição, se houver
     public function getErrors() : array {
         return $this->errors;
     }

@@ -9,7 +9,7 @@
     "license": "proprietary",
     "autoload": {
         "psr-4": {
-            "AgenciaNet\\": "src/"
+            "PaymentGateway\\": "src/"
         }
     },
     "authors": [

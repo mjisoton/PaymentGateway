@@ -1,5 +1,5 @@
 <?php
-namespace AgenciaNet\interfaces;
+namespace PaymentGateway\interfaces;
 
 /**
  *  interface GatewayAnswerInterface
